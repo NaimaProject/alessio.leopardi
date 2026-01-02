@@ -1,0 +1,11 @@
+---
+- name: restart sssd
+  service:
+    name: sssd
+    state: restarted
+
+- name: restart oddjobd
+  service:
+    name: oddjobd
+    state: restarted
+  when: ansible_os_family == "RedHat"

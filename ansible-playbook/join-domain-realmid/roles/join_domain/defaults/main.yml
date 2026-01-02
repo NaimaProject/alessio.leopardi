@@ -1,0 +1,25 @@
+---
+# Default variables for join_domain role
+# These can be overridden in your playbook or inventory
+
+# Domain name - REQUIRED
+# Example: domain_name: corp.example.com
+domain_name: example.com
+
+# Domain user with join privileges - REQUIRED
+# Example: domain_user: svc_domain_join
+domain_user: adminuser
+
+# Domain password - REQUIRED
+# SECURITY: Never hardcode this value!
+# Use ansible-vault or pass via --extra-vars
+# Example: ansible-playbook site.yml --extra-vars "domain_password=$DOMAIN_PASSWORD"
+domain_password: ""
+
+# Additional realm join options (optional)
+# Example: realm_join_options: "--computer-ou=OU=Linux,OU=Servers,DC=corp,DC=example,DC=com"
+realm_join_options: ""
+
+# SSSD configuration options (optional)
+sssd_configure_sudo: false
+sssd_configure_ssh: false

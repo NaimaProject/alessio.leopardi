@@ -83,6 +83,65 @@ ansible-playbook join-domain-realid.yml \
 - Si raccomanda fortemente di usare ansible-vault per le credenziali
 - Non committare mai password in chiaro nel repository
 
+## Utilizzo come Ruolo Ansible
+
+Questo playbook è stato anche convertito in un ruolo Ansible riutilizzabile per facilitare l'integrazione in progetti più complessi.
+
+### Struttura del Ruolo
+
+Il ruolo si trova in `roles/join_domain/` e segue la struttura standard di Ansible Galaxy:
+
+```
+roles/join_domain/
+├── README.md                 # Documentazione completa del ruolo
+├── defaults/
+│   └── main.yml             # Variabili di default
+├── handlers/
+│   └── main.yml             # Handlers per riavvio servizi
+├── meta/
+│   └── main.yml             # Metadata del ruolo
+└── tasks/
+    ├── main.yml             # Task principale
+    ├── install_packages.yml # Installazione pacchetti
+    ├── join_domain.yml      # Logica di join
+    └── configure.yml        # Configurazione post-join
+```
+
+### Esempio di Utilizzo del Ruolo
+
+Crea un playbook che utilizza il ruolo:
+
+```yaml
+# site.yml
+---
+- name: Join servers to Active Directory
+  hosts: linux_servers
+  become: yes
+
+  roles:
+    - role: join_domain
+      vars:
+        domain_name: corp.example.com
+        domain_user: svc_domain_join
+        domain_password: "{{ vault_domain_password }}"
+```
+
+Esegui con:
+
+```bash
+ansible-playbook site.yml --ask-vault-pass
+```
+
+Vedi [roles/join_domain/README.md](roles/join_domain/README.md) per la documentazione completa del ruolo.
+
+### Vantaggi del Ruolo
+
+- **Modularità**: Riutilizzabile in diversi playbook e progetti
+- **Manutenibilità**: Codice organizzato e più facile da mantenere
+- **Scalabilità**: Integrabile con altri ruoli in playbook complessi
+- **Condivisione**: Può essere pubblicato su Ansible Galaxy
+- **Task separati**: Logica divisa in file distinti per chiarezza
+
 ## Troubleshooting
 
 Se il playbook fallisce:

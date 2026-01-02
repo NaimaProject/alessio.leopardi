@@ -1,0 +1,38 @@
+---
+- name: Validate required variables
+  assert:
+    that:
+      - domain_name is defined
+      - domain_name | length > 0
+      - domain_user is defined
+      - domain_user | length > 0
+      - domain_password is defined
+      - domain_password | length > 0
+    fail_msg: "Required variables (domain_name, domain_user, domain_password) must be defined"
+    success_msg: "All required variables are defined"
+
+- name: Include package installation tasks
+  include_tasks: install_packages.yml
+
+- name: Include domain join tasks
+  include_tasks: join_domain.yml
+
+- name: Include post-join configuration tasks
+  include_tasks: configure.yml
+  when: not already_joined
+
+- name: Verify domain join status
+  command: realm list
+  register: realm_list_final
+  changed_when: false
+
+- name: Display realm information
+  debug:
+    var: realm_list_final.stdout_lines
+
+- name: Confirm successful domain join
+  assert:
+    that:
+      - domain_name in realm_list_final.stdout
+    fail_msg: "Domain join verification failed - {{ domain_name }} not found in realm list"
+    success_msg: "Successfully joined to domain {{ domain_name }}"

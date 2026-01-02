@@ -1,0 +1,36 @@
+---
+galaxy_info:
+  author: Alessio Leopardi
+  description: Ansible role to join Linux systems to Active Directory using realmd
+  company:
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - 7
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - buster
+        - bullseye
+        - bookworm
+
+  galaxy_tags:
+    - active_directory
+    - domain
+    - realmd
+    - sssd
+    - authentication
+    - ldap
+    - kerberos
+    - system
+
+dependencies: []

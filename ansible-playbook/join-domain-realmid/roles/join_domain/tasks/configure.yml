@@ -1,0 +1,20 @@
+---
+- name: Enable home directory creation on login (RHEL/CentOS)
+  service:
+    name: oddjobd
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure SSSD to create home directories (Debian/Ubuntu)
+  lineinfile:
+    path: /etc/pam.d/common-session
+    line: "session optional pam_mkhomedir.so skel=/etc/skel umask=077"
+    insertafter: EOF
+  when: ansible_os_family == "Debian"
+
+- name: Ensure SSSD service is enabled and started
+  service:
+    name: sssd
+    state: started
+    enabled: yes

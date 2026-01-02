@@ -1,0 +1,17 @@
+---
+# Example playbook using the join_domain role
+- name: Join servers to Active Directory
+  hosts: all
+  become: yes
+
+  roles:
+    - role: join_domain
+      vars:
+        domain_name: corp.example.com
+        domain_user: svc_domain_join
+        # Password should be passed securely via:
+        # 1. ansible-vault encrypted file
+        # 2. --extra-vars on command line
+        # 3. environment variable
+        # Example: ansible-playbook playbook-using-role.yml --extra-vars "domain_password=$AD_PASSWORD"
+        domain_password: "{{ domain_password }}"

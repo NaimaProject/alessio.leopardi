@@ -1,0 +1,28 @@
+---
+- name: Install base packages for realm
+  package:
+    name:
+      - realmd
+      - sssd
+      - adcli
+      - samba-common-tools
+    state: present
+
+- name: Install distribution-specific packages (RHEL/CentOS/Rocky/Alma)
+  package:
+    name:
+      - oddjob
+      - oddjob-mkhomedir
+      - sssd-tools
+      - krb5-workstation
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install distribution-specific packages (Debian/Ubuntu)
+  package:
+    name:
+      - libnss-sss
+      - libpam-sss
+      - packagekit
+    state: present
+  when: ansible_os_family == "Debian"
