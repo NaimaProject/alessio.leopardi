@@ -18,8 +18,27 @@ domain_password: ""
 
 # Additional realm join options (optional)
 # Example: realm_join_options: "--computer-ou=OU=Linux,OU=Servers,DC=corp,DC=example,DC=com"
+# Common options:
+#   --computer-ou=OU_PATH - Specify organizational unit for computer account
+#   --os-name=NAME - Override OS name sent to domain
+#   --os-version=VERSION - Override OS version sent to domain
+#   --automatic-id-mapping=yes/no - Control automatic ID mapping
 realm_join_options: ""
 
 # SSSD configuration options (optional)
+# Enable sudo rules for domain admins group
 sssd_configure_sudo: false
+
+# Allow SSH password authentication for domain users
 sssd_configure_ssh: false
+
+# Use custom SSSD configuration template
+sssd_configure_custom: false
+
+# Domain admin group name (used when sssd_configure_sudo is true)
+# Example: domain_admin_group: "Domain Admins@corp.example.com"
+domain_admin_group: "Domain Admins"
+
+# Additional SSSD domains to configure (optional)
+# Example: additional_sssd_domains: ["trust1.example.com", "trust2.example.com"]
+additional_sssd_domains: []

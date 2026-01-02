@@ -27,7 +27,11 @@
 
 - name: Join the domain (using stdin for password)
   shell: |
-    echo '{{ domain_password }}' | realm join --user={{ domain_user }} {{ domain_name }}
+    set -o pipefail
+    realm join --user={{ domain_user }} {{ domain_name }} {{ realm_join_options }}
+  args:
+    stdin: "{{ domain_password }}"
+    executable: /bin/bash
   no_log: true
   register: realm_join_result
   when: not already_joined

@@ -1,0 +1,26 @@
+[sssd]
+domains = {{ domain_name }}{% if additional_sssd_domains | length > 0 %}, {{ additional_sssd_domains | join(', ') }}{% endif %}
+
+config_file_version = 2
+services = nss, pam{% if sssd_configure_sudo %}, sudo{% endif %}
+
+[domain/{{ domain_name }}]
+ad_domain = {{ domain_name }}
+krb5_realm = {{ domain_name | upper }}
+realmd_tags = manages-system joined-with-adcli
+cache_credentials = True
+id_provider = ad
+krb5_store_password_if_offline = True
+default_shell = /bin/bash
+ldap_id_mapping = True
+use_fully_qualified_names = False
+fallback_homedir = /home/%u
+access_provider = ad
+dyndns_update = true
+dyndns_refresh_interval = 43200
+dyndns_update_ptr = true
+dyndns_ttl = 3600
+
+{% if sssd_configure_sudo %}
+[sudo]
+{% endif %}

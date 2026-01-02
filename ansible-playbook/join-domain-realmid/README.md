@@ -1,119 +1,185 @@
-# Join Domain using realmd - Ansible Playbook
+# Domain Join Playbook (Standalone)
 
-Questo playbook Ansible permette di joinare sistemi Linux a un dominio Active Directory utilizzando `realmd`.
+Questo è un playbook standalone per joinare sistemi Linux ad Active Directory usando realmd.
 
-## Caratteristiche
+## File Inclusi
 
-- **Sicurezza migliorata**: La password non viene esposta nei log grazie a `no_log: true`
-- **Idempotenza**: Verifica se il sistema è già joinato prima di procedere
-- **Multi-distribuzione**: Supporta RHEL/CentOS/Rocky/Alma e Debian/Ubuntu
-- **Gestione errori**: Validazione delle variabili e verifica del successo dell'operazione
-- **Auto-creazione home directory**: Configurazione automatica per creare le home directory degli utenti del dominio
+- `join-domain-realid.yml` - Playbook principale
+- `inventory.example.ini` - Esempio di file inventory
+- `vault.example.yml` - Esempio di file vault per credenziali
+- `README.md` - Questa documentazione
 
-## Prerequisiti
+## Utilizzo Rapido
 
-- Ansible 2.9 o superiore
-- Accesso con privilegi sudo/root sui target
-- Connettività di rete verso i Domain Controller
-- Credenziali di un utente con permessi di join al dominio
+### 1. Preparazione
 
-## Variabili richieste
-
-- `domain_name`: Nome del dominio AD (es. `example.com`)
-- `domain_user`: Username con permessi di join al dominio
-- `domain_password`: Password dell'utente (deve essere fornita in modo sicuro)
-
-## Utilizzo
-
-### Metodo 1: Password via prompt (raccomandato)
-
+Copia e personalizza l'inventory di esempio:
 ```bash
-ansible-playbook join-domain-realid.yml --extra-vars "domain_password=" --ask-vault-pass
+cp inventory.example.ini inventory.ini
+# Modifica inventory.ini con i tuoi server e domini
 ```
 
-### Metodo 2: Password criptata con ansible-vault
+### 2. Configurazione Credenziali (Opzione A: Ansible Vault)
 
-1. Crea un file di variabili criptato:
+Crea un file vault per le credenziali:
 ```bash
-ansible-vault create secrets.yml
+ansible-vault create vault.yml
 ```
 
-2. Aggiungi le credenziali:
+Aggiungi la password del dominio:
 ```yaml
-domain_password: your_secure_password
-```
-
-3. Esegui il playbook:
-```bash
-ansible-playbook join-domain-realid.yml --extra-vars "@secrets.yml" --ask-vault-pass
-```
-
-### Metodo 3: Password via variabile d'ambiente
-
-```bash
-export DOMAIN_PASSWORD="your_password"
-ansible-playbook join-domain-realid.yml --extra-vars "domain_password=$DOMAIN_PASSWORD"
-```
-
-### Personalizzare dominio e utente
-
-Modifica le variabili nel file yml oppure passa via command line:
-
-```bash
-ansible-playbook join-domain-realid.yml \
-  --extra-vars "domain_name=corp.example.com domain_user=admin domain_password=$DOMAIN_PASSWORD"
-```
-
-## Cosa fa il playbook
-
-1. Valida che tutte le variabili richieste siano presenti
-2. Installa i pacchetti necessari (realmd, sssd, adcli, ecc.)
-3. Installa pacchetti specifici per la distribuzione in uso
-4. Verifica se il sistema è già joinato al dominio
-5. Scopre il dominio tramite `realm discover`
-6. Esegue il join al dominio (solo se non già joinato)
-7. Configura la creazione automatica delle home directory
-8. Riavvia il servizio SSSD
-9. Verifica che il join sia andato a buon fine
-
-## Note di sicurezza
-
-- La password viene passata via stdin per evitare esposizione nella command line
-- `no_log: true` previene il logging della password
-- Si raccomanda fortemente di usare ansible-vault per le credenziali
-- Non committare mai password in chiaro nel repository
-
-## Utilizzo come Ruolo Ansible
-
-Questo playbook è stato anche convertito in un ruolo Ansible riutilizzabile per facilitare l'integrazione in progetti più complessi.
-
-Il ruolo si trova in una directory separata: `../../ansible-roles/join_domain/`
-
-### Struttura del Progetto
-
-```
-alessio.leopardi/
-├── ansible-playbook/
-│   └── join-domain-realmid/      # Playbook standalone
-│       ├── join-domain-realid.yml
-│       └── README.md
-└── ansible-roles/
-    └── join_domain/               # Ruolo riutilizzabile
-        ├── README.md
-        ├── defaults/
-        ├── handlers/
-        ├── meta/
-        └── tasks/
-```
-
-### Esempio di Utilizzo del Ruolo
-
-Crea un playbook che utilizza il ruolo:
-
-```yaml
-# site.yml
 ---
-- name: Join servers to Active Directory
+vault_domain_password: "YourSecurePassword123"
+```
+
+### 3. Esecuzione
+
+Con vault:
+```bash
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --extra-vars "@vault.yml" \
+  --ask-vault-pass
+```
+
+Con password da environment variable:
+```bash
+export AD_PASSWORD="YourPassword"
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --extra-vars "domain_password=$AD_PASSWORD"
+```
+
+Con prompt interattivo:
+```bash
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --extra-vars "domain_password=" \
+  --ask-pass
+```
+
+## Opzioni Disponibili
+
+### Variabili Richieste
+
+| Variabile | Descrizione | Esempio |
+|-----------|-------------|---------|
+| `domain_name` | Nome FQDN del dominio | `corp.example.com` |
+| `domain_user` | Utente con privilegi di join | `svc_domain_join` |
+| `domain_password` | Password utente dominio | Passare via vault/extra-vars |
+
+### Variabili Opzionali
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `realm_join_options` | `""` | Opzioni aggiuntive per realm join |
+| `sssd_configure_sudo` | `false` | Abilita sudo per domain admins |
+| `sssd_configure_ssh` | `false` | Abilita autenticazione SSH |
+| `domain_admin_group` | `"Domain Admins"` | Gruppo per sudo access |
+
+## Esempi Avanzati
+
+### Join con OU Personalizzata
+
+```bash
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --extra-vars "domain_password=$AD_PASSWORD" \
+  --extra-vars "realm_join_options='--computer-ou=OU=Linux,OU=Servers,DC=corp,DC=example,DC=com'"
+```
+
+### Abilitare Sudo per Domain Admins
+
+```bash
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --extra-vars "@vault.yml" \
+  --extra-vars "sssd_configure_sudo=true domain_admin_group='Linux Admins'" \
+  --ask-vault-pass
+```
+
+### Esecuzione su Host Specifici
+
+```bash
+# Solo server RHEL
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --limit rhel_servers \
+  --extra-vars "domain_password=$AD_PASSWORD"
+
+# Solo webservers
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --limit webservers \
+  --extra-vars "@vault.yml" \
+  --ask-vault-pass
+```
+
+### Dry Run (Check Mode)
+
+```bash
+ansible-playbook -i inventory.ini join-domain-realid.yml \
+  --check --diff \
+  --extra-vars "domain_password=$AD_PASSWORD"
+```
+
+## Verifica
+
+Dopo l'esecuzione, verifica il join:
+
+```bash
+# Connettiti al server
+ssh user@server.corp.example.com
+
+# Verifica realm
+sudo realm list
+
+# Verifica SSSD
+sudo systemctl status sssd
+
+# Test autenticazione utente dominio
+id domain_user@corp.example.com
+
+# Test login SSH (se configurato)
+ssh domain_user@corp.example.com@server.corp.example.com
+```
+
+## Troubleshooting
+
+### Discovery del Dominio Fallisce
+
+Verifica DNS:
+```bash
+nslookup corp.example.com
+dig _ldap._tcp.corp.example.com SRV
+```
+
+### Join Fallisce
+
+Controlla i log:
+```bash
+sudo journalctl -u realmd -n 50
+sudo tail -f /var/log/sssd/*.log
+```
+
+### Verifica Connettività
+
+```bash
+# Test Kerberos
+kinit username@CORP.EXAMPLE.COM
+
+# Test LDAP
+ldapsearch -H ldap://dc01.corp.example.com -b "dc=corp,dc=example,dc=com"
+```
+
+## Note di Sicurezza
+
+- ⚠️ **MAI** hardcodare password nel playbook o inventory
+- ✅ Usare sempre ansible-vault per le credenziali
+- ✅ Usare `no_log: true` per task sensibili
+- ✅ Limitare i permessi sui file vault (chmod 600)
+- ✅ Usare utenti di servizio dedicati per il join al dominio
+
+## Alternativa: Usare il Role
+
+Per un uso più modulare e riusabile, considera di usare il role `join_domain` invece del playbook standalone:
+
+```yaml
+---
+- name: Join servers using role
   hosts: linux_servers
   become: yes
 
@@ -125,48 +191,4 @@ Crea un playbook che utilizza il ruolo:
         domain_password: "{{ vault_domain_password }}"
 ```
 
-Oppure copia il ruolo nel tuo progetto:
-
-```bash
-cp -r ../../ansible-roles/join_domain /path/to/your/project/roles/
-```
-
-Esegui con:
-
-```bash
-ansible-playbook site.yml --ask-vault-pass
-```
-
-Vedi [../../ansible-roles/join_domain/README.md](../../ansible-roles/join_domain/README.md) per la documentazione completa del ruolo.
-
-### Vantaggi del Ruolo
-
-- **Modularità**: Riutilizzabile in diversi playbook e progetti
-- **Manutenibilità**: Codice organizzato e più facile da mantenere
-- **Scalabilità**: Integrabile con altri ruoli in playbook complessi
-- **Condivisione**: Può essere pubblicato su Ansible Galaxy
-- **Task separati**: Logica divisa in file distinti per chiarezza
-
-## Troubleshooting
-
-Se il playbook fallisce:
-
-1. Verifica la connettività di rete con il DC:
-```bash
-realm discover your-domain.com
-```
-
-2. Controlla i log SSSD:
-```bash
-tail -f /var/log/sssd/*.log
-```
-
-3. Verifica lo stato del realm:
-```bash
-realm list
-```
-
-4. Per fare leave del dominio:
-```bash
-realm leave
-```
+Vedi `../../ansible-roles/join_domain/README.md` per la documentazione completa del role.

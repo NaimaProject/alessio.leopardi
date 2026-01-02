@@ -8,4 +8,8 @@
   service:
     name: oddjobd
     state: restarted
-  when: ansible_os_family == "RedHat"
+
+- name: restart sshd
+  service:
+    name: "{{ 'sshd' if ansible_os_family == 'RedHat' else 'ssh' }}"
+    state: restarted

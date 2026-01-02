@@ -1,0 +1,19 @@
+---
+# Example Vault File for Domain Credentials
+# 
+# To use this file:
+# 1. Copy to vault.yml: cp vault.example.yml vault.yml
+# 2. Edit with your actual password: ansible-vault edit vault.yml
+# 3. Or create encrypted from scratch: ansible-vault create vault.yml
+#
+# Usage:
+# ansible-playbook -i inventory.ini join-domain-realid.yml \
+#   --extra-vars "@vault.yml" \
+#   --ask-vault-pass
+
+# Domain password - REPLACE WITH YOUR ACTUAL PASSWORD
+vault_domain_password: "ChangeMe123!"
+
+# Optional: Additional domain credentials for different environments
+# vault_dev_domain_password: "DevPassword123"
+# vault_prod_domain_password: "ProdPassword456"

@@ -1,13 +1,28 @@
 ---
-- name: Join Domain using realmd
+- name: Join Domain using realmd (Standalone Playbook)
   hosts: all
   become: yes
   vars:
+    # REQUIRED VARIABLES - Override these in your inventory or command line
     domain_name: example.com
     domain_user: adminuser
-    # Use ansible-vault to encrypt this variable or pass via --extra-vars
-    # domain_password should be provided securely, not hardcoded
+    # SECURITY: Use ansible-vault to encrypt this variable or pass via --extra-vars
+    # Example: ansible-playbook join-domain-realid.yml --extra-vars "domain_password=$AD_PASSWORD"
     domain_password: "{{ domain_password | default('') }}"
+
+    # OPTIONAL VARIABLES - Customize as needed
+    # Place computer in specific OU (optional)
+    # Example: "--computer-ou=OU=Linux,OU=Servers,DC=corp,DC=example,DC=com"
+    realm_join_options: ""
+
+    # Enable sudo for domain admins (default: false)
+    sssd_configure_sudo: false
+
+    # Enable SSH password authentication for domain users (default: false)
+    sssd_configure_ssh: false
+
+    # Domain admin group name (used when sssd_configure_sudo is true)
+    domain_admin_group: "Domain Admins"
 
   tasks:
     - name: Validate required variables
@@ -76,9 +91,13 @@
         success_msg: "Domain {{ domain_name }} discovered successfully"
       when: not already_joined
 
-    - name: Join the domain (using stdin for password)
+    - name: Join the domain (using stdin for password - secure method)
       shell: |
-        echo '{{ domain_password }}' | realm join --user={{ domain_user }} {{ domain_name }}
+        set -o pipefail
+        realm join --user={{ domain_user }} {{ domain_name }} {{ realm_join_options }}
+      args:
+        stdin: "{{ domain_password }}"
+        executable: /bin/bash
       no_log: true
       register: realm_join_result
       when: not already_joined
@@ -89,25 +108,43 @@
         name: oddjobd
         state: started
         enabled: yes
-      when:
-        - ansible_os_family == "RedHat"
-        - not already_joined
+      when: ansible_os_family == "RedHat"
 
     - name: Configure SSSD to create home directories (Debian/Ubuntu)
       lineinfile:
         path: /etc/pam.d/common-session
         line: "session optional pam_mkhomedir.so skel=/etc/skel umask=077"
+        regexp: '^session\s+optional\s+pam_mkhomedir\.so'
         insertafter: EOF
-      when:
-        - ansible_os_family == "Debian"
-        - not already_joined
+        state: present
+      when: ansible_os_family == "Debian"
 
-    - name: Restart SSSD service
+    - name: Allow domain users to login via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        state: present
+      when: sssd_configure_ssh | default(false)
+      notify: restart sshd
+
+    - name: Configure sudo for domain admins
+      copy:
+        content: |
+          # Ansible managed - Allow {{ domain_admin_group }} group full sudo access
+          %{{ domain_admin_group }} ALL=(ALL) ALL
+        dest: /etc/sudoers.d/domain_admins
+        owner: root
+        group: root
+        mode: '0440'
+        validate: 'visudo -cf %s'
+      when: sssd_configure_sudo | default(false)
+
+    - name: Ensure SSSD service is enabled and started
       service:
         name: sssd
-        state: restarted
+        state: started
         enabled: yes
-      when: not already_joined
 
     - name: Verify domain join status
       command: realm list
@@ -124,3 +161,14 @@
           - domain_name in realm_list_final.stdout
         fail_msg: "Domain join verification failed - {{ domain_name }} not found in realm list"
         success_msg: "Successfully joined to domain {{ domain_name }}"
+
+  handlers:
+    - name: restart sssd
+      service:
+        name: sssd
+        state: restarted
+
+    - name: restart sshd
+      service:
+        name: "{{ 'sshd' if ansible_os_family == 'RedHat' else 'ssh' }}"
+        state: restarted

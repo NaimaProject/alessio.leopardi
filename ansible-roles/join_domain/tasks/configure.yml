@@ -5,13 +5,46 @@
     state: started
     enabled: yes
   when: ansible_os_family == "RedHat"
+  notify: restart oddjobd
 
 - name: Configure SSSD to create home directories (Debian/Ubuntu)
   lineinfile:
     path: /etc/pam.d/common-session
     line: "session optional pam_mkhomedir.so skel=/etc/skel umask=077"
+    regexp: '^session\s+optional\s+pam_mkhomedir\.so'
     insertafter: EOF
+    state: present
   when: ansible_os_family == "Debian"
+  notify: restart sssd
+
+- name: Configure SSSD for domain authentication
+  template:
+    src: sssd.conf.j2
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: '0600'
+  when: sssd_configure_custom | default(false)
+  notify: restart sssd
+
+- name: Allow domain users to login via SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+    state: present
+  when: sssd_configure_ssh | default(false)
+  notify: restart sshd
+
+- name: Configure sudo for domain admins
+  template:
+    src: domain_admins_sudo.j2
+    dest: /etc/sudoers.d/domain_admins
+    owner: root
+    group: root
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  when: sssd_configure_sudo | default(false)
 
 - name: Ensure SSSD service is enabled and started
   service:

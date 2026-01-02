@@ -1,27 +1,32 @@
 ---
 galaxy_info:
+  role_name: join_domain
   author: Alessio Leopardi
-  description: Ansible role to join Linux systems to Active Directory using realmd
+  description: Ansible role to join Linux systems to Active Directory using realmd with comprehensive domain integration features
   company:
   license: MIT
   min_ansible_version: "2.9"
 
+  # Namespace for Ansible Galaxy (update with your username)
+  # namespace: alessio_leopardi
+
   platforms:
     - name: EL
       versions:
-        - 7
-        - 8
-        - 9
+        - "7"
+        - "8"
+        - "9"
     - name: Ubuntu
       versions:
-        - focal
-        - jammy
-        - noble
+        - bionic   # 18.04
+        - focal    # 20.04
+        - jammy    # 22.04
+        - noble    # 24.04
     - name: Debian
       versions:
-        - buster
-        - bullseye
-        - bookworm
+        - buster   # 10
+        - bullseye # 11
+        - bookworm # 12
 
   galaxy_tags:
     - active_directory
@@ -32,5 +37,18 @@ galaxy_info:
     - ldap
     - kerberos
     - system
+    - security
+    - linux
+    - identity
+    - ad
+
+  # Optional: Add these if publishing to Galaxy
+  # github_repo: https://github.com/your-username/ansible-role-join-domain
+  # github_branch: main
+  # issue_tracker: https://github.com/your-username/ansible-role-join-domain/issues
 
 dependencies: []
+
+# Collection metadata (optional)
+# If you plan to include this role in a collection
+# collection_name: alessio_leopardi.ad_integration
