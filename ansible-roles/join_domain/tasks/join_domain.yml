@@ -25,11 +25,36 @@
     success_msg: "Domain {{ domain_name }} discovered successfully"
   when: not already_joined
 
-- name: Join the domain (using stdin for password)
+- name: Create temporary password file
+  tempfile:
+    state: file
+    suffix: .realm
+  register: temp_password_file
+  when: not already_joined
+  no_log: true
+
+- name: Write password to temporary file
+  copy:
+    content: "{{ domain_password }}"
+    dest: "{{ temp_password_file.path }}"
+    mode: '0600'
+  when: not already_joined
+  no_log: true
+
+- name: Join the domain (using password file)
   shell: |
-    echo '{{ domain_password }}' | realm join --user={{ domain_user }} {{ domain_name }}
+    cat {{ temp_password_file.path }} | realm join --user={{ domain_user }} {{ realm_join_options }} {{ domain_name }}
   no_log: true
   register: realm_join_result
   when: not already_joined
   failed_when: realm_join_result.rc != 0
   notify: restart sssd
+
+- name: Remove temporary password file
+  file:
+    path: "{{ temp_password_file.path }}"
+    state: absent
+  when:
+    - not already_joined
+    - temp_password_file.path is defined
+  no_log: true

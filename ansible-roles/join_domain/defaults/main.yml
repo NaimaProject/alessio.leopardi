@@ -23,3 +23,18 @@ realm_join_options: ""
 # SSSD configuration options (optional)
 sssd_configure_sudo: false
 sssd_configure_ssh: false
+
+# Home directory configuration
+sssd_home_dir_template: /home/%u
+sssd_default_shell: /bin/bash
+sssd_override_homedir: false
+sssd_override_shell: false
+
+# SSSD domain settings
+sssd_use_fully_qualified_names: false
+sssd_fallback_homedir: /home/%u@%d
+sssd_access_provider: "permit"
+
+# PAM mkhomedir settings
+pam_mkhomedir_umask: "0077"
+pam_mkhomedir_skel: /etc/skel

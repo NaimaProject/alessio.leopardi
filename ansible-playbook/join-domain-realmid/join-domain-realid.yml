@@ -21,6 +21,9 @@
           - domain_password | length > 0
         fail_msg: "Required variables (domain_name, domain_user, domain_password) must be defined"
         success_msg: "All required variables are defined"
+      tags:
+        - always
+        - validate
 
     - name: Install base packages for realm
       package:
@@ -30,6 +33,7 @@
           - adcli
           - samba-common-tools
         state: present
+      tags: [packages, install]
 
     - name: Install distribution-specific packages (RHEL/CentOS/Rocky/Alma)
       package:
@@ -40,6 +44,7 @@
           - krb5-workstation
         state: present
       when: ansible_os_family == "RedHat"
+      tags: [packages, install]
 
     - name: Install distribution-specific packages (Debian/Ubuntu)
       package:
@@ -49,16 +54,19 @@
           - packagekit
         state: present
       when: ansible_os_family == "Debian"
+      tags: [packages, install]
 
     - name: Check if system is already joined to domain
       command: realm list
       register: realm_status
       changed_when: false
       failed_when: false
+      tags: [join, domain]
 
     - name: Set domain join status fact
       set_fact:
         already_joined: "{{ domain_name in realm_status.stdout }}"
+      tags: [join, domain]
 
     - name: Discover the domain
       command: realm discover {{ domain_name }}
@@ -66,6 +74,7 @@
       changed_when: false
       failed_when: realm_discover.rc != 0
       when: not already_joined
+      tags: [join, domain]
 
     - name: Verify domain is discoverable
       assert:
@@ -75,14 +84,44 @@
         fail_msg: "Domain {{ domain_name }} could not be discovered"
         success_msg: "Domain {{ domain_name }} discovered successfully"
       when: not already_joined
+      tags: [join, domain]
 
-    - name: Join the domain (using stdin for password)
+    - name: Create temporary password file
+      tempfile:
+        state: file
+        suffix: .realm
+      register: temp_password_file
+      when: not already_joined
+      no_log: true
+      tags: [join, domain]
+
+    - name: Write password to temporary file
+      copy:
+        content: "{{ domain_password }}"
+        dest: "{{ temp_password_file.path }}"
+        mode: '0600'
+      when: not already_joined
+      no_log: true
+      tags: [join, domain]
+
+    - name: Join the domain (using password file)
       shell: |
-        echo '{{ domain_password }}' | realm join --user={{ domain_user }} {{ domain_name }}
+        cat {{ temp_password_file.path }} | realm join --user={{ domain_user }} {{ domain_name }}
       no_log: true
       register: realm_join_result
       when: not already_joined
       failed_when: realm_join_result.rc != 0
+      tags: [join, domain]
+
+    - name: Remove temporary password file
+      file:
+        path: "{{ temp_password_file.path }}"
+        state: absent
+      when:
+        - not already_joined
+        - temp_password_file.path is defined
+      no_log: true
+      tags: [join, domain]
 
     - name: Enable home directory creation on login (RHEL/CentOS)
       service:
@@ -97,26 +136,33 @@
       lineinfile:
         path: /etc/pam.d/common-session
         line: "session optional pam_mkhomedir.so skel=/etc/skel umask=077"
+        regexp: '^session\s+optional\s+pam_mkhomedir\.so'
         insertafter: EOF
-      when:
-        - ansible_os_family == "Debian"
-        - not already_joined
+        state: present
+      when: ansible_os_family == "Debian"
+      tags: [configure, config]
 
-    - name: Restart SSSD service
+    - name: Ensure SSSD service is enabled and started
       service:
         name: sssd
-        state: restarted
+        state: started
         enabled: yes
-      when: not already_joined
+      tags: [configure, config]
 
     - name: Verify domain join status
       command: realm list
       register: realm_list_final
       changed_when: false
+      tags:
+        - always
+        - verify
 
     - name: Display realm information
       debug:
         var: realm_list_final.stdout_lines
+      tags:
+        - always
+        - verify
 
     - name: Confirm successful domain join
       assert:
@@ -124,3 +170,6 @@
           - domain_name in realm_list_final.stdout
         fail_msg: "Domain join verification failed - {{ domain_name }} not found in realm list"
         success_msg: "Successfully joined to domain {{ domain_name }}"
+      tags:
+        - always
+        - verify
