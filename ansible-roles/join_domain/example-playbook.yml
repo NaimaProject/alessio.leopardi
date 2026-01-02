@@ -13,5 +13,5 @@
         # 1. ansible-vault encrypted file
         # 2. --extra-vars on command line
         # 3. environment variable
-        # Example: ansible-playbook playbook-using-role.yml --extra-vars "domain_password=$AD_PASSWORD"
+        # Example: ansible-playbook example-playbook.yml --extra-vars "domain_password=$AD_PASSWORD"
         domain_password: "{{ domain_password }}"

@@ -87,24 +87,23 @@ ansible-playbook join-domain-realid.yml \
 
 Questo playbook è stato anche convertito in un ruolo Ansible riutilizzabile per facilitare l'integrazione in progetti più complessi.
 
-### Struttura del Ruolo
+Il ruolo si trova in una directory separata: `../../ansible-roles/join_domain/`
 
-Il ruolo si trova in `roles/join_domain/` e segue la struttura standard di Ansible Galaxy:
+### Struttura del Progetto
 
 ```
-roles/join_domain/
-├── README.md                 # Documentazione completa del ruolo
-├── defaults/
-│   └── main.yml             # Variabili di default
-├── handlers/
-│   └── main.yml             # Handlers per riavvio servizi
-├── meta/
-│   └── main.yml             # Metadata del ruolo
-└── tasks/
-    ├── main.yml             # Task principale
-    ├── install_packages.yml # Installazione pacchetti
-    ├── join_domain.yml      # Logica di join
-    └── configure.yml        # Configurazione post-join
+alessio.leopardi/
+├── ansible-playbook/
+│   └── join-domain-realmid/      # Playbook standalone
+│       ├── join-domain-realid.yml
+│       └── README.md
+└── ansible-roles/
+    └── join_domain/               # Ruolo riutilizzabile
+        ├── README.md
+        ├── defaults/
+        ├── handlers/
+        ├── meta/
+        └── tasks/
 ```
 
 ### Esempio di Utilizzo del Ruolo
@@ -119,11 +118,17 @@ Crea un playbook che utilizza il ruolo:
   become: yes
 
   roles:
-    - role: join_domain
+    - role: ../../ansible-roles/join_domain
       vars:
         domain_name: corp.example.com
         domain_user: svc_domain_join
         domain_password: "{{ vault_domain_password }}"
+```
+
+Oppure copia il ruolo nel tuo progetto:
+
+```bash
+cp -r ../../ansible-roles/join_domain /path/to/your/project/roles/
 ```
 
 Esegui con:
@@ -132,7 +137,7 @@ Esegui con:
 ansible-playbook site.yml --ask-vault-pass
 ```
 
-Vedi [roles/join_domain/README.md](roles/join_domain/README.md) per la documentazione completa del ruolo.
+Vedi [../../ansible-roles/join_domain/README.md](../../ansible-roles/join_domain/README.md) per la documentazione completa del ruolo.
 
 ### Vantaggi del Ruolo
 

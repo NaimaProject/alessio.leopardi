@@ -54,10 +54,10 @@ Nessuna dipendenza esterna.
 
 #### Metodo A: Copia locale
 
-Copia la directory `roles/join_domain` nel tuo progetto Ansible:
+Copia la directory `join_domain` nel tuo progetto Ansible:
 
 ```bash
-cp -r roles/join_domain /path/to/your/ansible/project/roles/
+cp -r ansible-roles/join_domain /path/to/your/ansible/project/roles/
 ```
 
 #### Metodo B: Via requirements.yml (se pubblicato su Galaxy)
@@ -193,13 +193,11 @@ join_domain/
 │   └── main.yml             # Handlers per riavvio servizi
 ├── meta/
 │   └── main.yml             # Metadata e dipendenze
-├── tasks/
-│   ├── main.yml             # Task principale
-│   ├── install_packages.yml # Installazione pacchetti
-│   ├── join_domain.yml      # Logica di join
-│   └── configure.yml        # Configurazione post-join
-└── vars/
-    └── main.yml             # Variabili (vuoto per ora)
+└── tasks/
+    ├── main.yml             # Task principale
+    ├── install_packages.yml # Installazione pacchetti
+    ├── join_domain.yml      # Logica di join
+    └── configure.yml        # Configurazione post-join
 ```
 
 ## Task Eseguiti
