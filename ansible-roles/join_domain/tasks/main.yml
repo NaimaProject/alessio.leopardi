@@ -33,6 +33,14 @@
     - configure
     - config
 
+- name: Include access control and sudo configuration
+  include_tasks: access_control.yml
+  when: ad_restrict_access | bool or ad_configure_sudo | bool
+  tags:
+    - access
+    - security
+    - sudo
+
 - name: Verify domain join status
   command: realm list
   register: realm_list_final

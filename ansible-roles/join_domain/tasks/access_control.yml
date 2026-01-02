@@ -1,0 +1,73 @@
+---
+# === CONTROLLO ACCESSO - Limita login a gruppi AD specifici ===
+
+- name: Deny access to all users (preparing for group-based access)
+  command: realm deny --all
+  when: ad_restrict_access | bool
+  changed_when: false
+  tags: [access, security]
+
+- name: Permit login only to specific AD groups
+  command: realm permit -g "{{ item }}"
+  loop: "{{ ad_login_groups }}"
+  when:
+    - ad_restrict_access | bool
+    - ad_login_groups | length > 0
+  changed_when: false
+  tags: [access, security]
+
+- name: Verify access control configuration
+  command: realm list
+  register: realm_permissions
+  changed_when: false
+  when: ad_restrict_access | bool
+  tags: [access, security]
+
+- name: Display configured access groups
+  debug:
+    msg: "Access restricted to groups: {{ ad_login_groups | join(', ') }}"
+  when:
+    - ad_restrict_access | bool
+    - ad_login_groups | length > 0
+  tags: [access, security]
+
+# === SUDO CONFIGURATION - Configura sudo per gruppi AD ===
+
+- name: Create sudoers directory if not exists
+  file:
+    path: /etc/sudoers.d
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+  when: ad_configure_sudo | bool
+  tags: [sudo, security]
+
+- name: Configure sudo for AD groups
+  lineinfile:
+    path: "/etc/sudoers.d/{{ ad_sudoers_file }}"
+    line: '%{{ item }}  ALL=(ALL)  ALL'
+    create: yes
+    mode: '0440'
+    owner: root
+    group: root
+    validate: 'visudo -cf %s'
+  loop: "{{ ad_sudo_groups }}"
+  when:
+    - ad_configure_sudo | bool
+    - ad_sudo_groups | length > 0
+  tags: [sudo, security]
+
+- name: Display configured sudo groups
+  debug:
+    msg: "Sudo privileges granted to groups: {{ ad_sudo_groups | join(', ') }}"
+  when:
+    - ad_configure_sudo | bool
+    - ad_sudo_groups | length > 0
+  tags: [sudo, security]
+
+- name: Validate sudoers configuration
+  command: visudo -c
+  changed_when: false
+  when: ad_configure_sudo | bool
+  tags: [sudo, security]

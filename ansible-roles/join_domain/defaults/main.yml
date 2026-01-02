@@ -38,3 +38,14 @@ sssd_access_provider: "permit"
 # PAM mkhomedir settings
 pam_mkhomedir_umask: "0077"
 pam_mkhomedir_skel: /etc/skel
+
+# Access control settings
+ad_restrict_access: false                    # Abilita restrizione accesso per gruppi specifici
+ad_login_groups: []                          # Lista gruppi AD autorizzati al login
+# Example: ad_login_groups: ["linux-users", "administrators"]
+
+# Sudo configuration for AD groups
+ad_configure_sudo: false                     # Abilita configurazione sudo per gruppi AD
+ad_sudo_groups: []                           # Lista gruppi AD con privilegi sudo
+# Example: ad_sudo_groups: ["domain admins", "linux-admins"]
+ad_sudoers_file: "ad_sudoers"               # Nome file in /etc/sudoers.d/
